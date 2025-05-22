@@ -1,0 +1,282 @@
+{
+  "name": "Automated Remote Job Tracker with Alerts",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -80,
+        0
+      ],
+      "id": "915513c5-1926-4646-83ce-1e8f76086afe",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://remoteok.com/api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-workflow"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        160,
+        0
+      ],
+      "id": "ad803d90-43b6-449a-b665-55740eec0a5e",
+      "name": "Fetch Remote Jobs"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Remove first item and return the rest\nreturn items.slice(1).map(item => {\n  return {\n    json: item.json\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        -20
+      ],
+      "id": "b80ef5d0-ee0b-435f-9899-819fb1d4c341",
+      "name": "Clean Job Data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "197aa7d1-af1d-4162-b82c-8e3d3bfae7b7",
+              "leftValue": "={{ $json[\"tags\"].join(\",\").toLowerCase() }}",
+              "rightValue": "developer",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "7d92b9d8-3d42-48e0-b6a9-71f1e344fe70",
+              "leftValue": "={{ $json[\"tags\"].join(\",\").toLowerCase() }}",
+              "rightValue": "engineer",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "73e11128-54f9-4e1c-be9e-a5c53df637ea",
+              "leftValue": "={{ $json[\"tags\"].join(\",\").toLowerCase() }}",
+              "rightValue": "fullstack",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "75d79153-9c80-4510-98b6-30aebfe6dee1",
+              "leftValue": "={{ $json[\"tags\"].join(\",\").toLowerCase() }}",
+              "rightValue": "backend",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "35d2341a-777a-4e0a-bf75-17a693dc7095",
+              "leftValue": "={{ $json[\"tags\"].join(\",\").toLowerCase() }}",
+              "rightValue": "frontend",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        -20
+      ],
+      "id": "abe57240-e54f-413f-b772-9c1103b3673a",
+      "name": "Filter Developer Jobs"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const tags = ($json.tags || []).map(t => t.toLowerCase());\n\nlet stackSummary = [];\n\nif (tags.includes(\"golang\")) stackSummary.push(\"Go\");\nif (tags.includes(\"python\")) stackSummary.push(\"Python\");\nif (tags.includes(\"node.js\") || tags.includes(\"nodejs\")) stackSummary.push(\"Node.js\");\nif (tags.includes(\"react\")) stackSummary.push(\"React\");\nif (tags.includes(\"vue\")) stackSummary.push(\"Vue.js\");\nif (tags.includes(\"aws\")) stackSummary.push(\"AWS\");\nif (tags.includes(\"gcp\")) stackSummary.push(\"GCP\");\nif (tags.includes(\"docker\")) stackSummary.push(\"Docker\");\nif (tags.includes(\"kubernetes\")) stackSummary.push(\"Kubernetes\");\n\nreturn {\n  json: {\n    ...$json,\n    stackSummary: stackSummary.length > 0 \n      ? `Tech Stack: ${stackSummary.join(\", \")}` \n      : \"Tech Stack: Not listed\"\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -40
+      ],
+      "id": "4b113ad8-35be-4b29-8276-e501a3b593c7",
+      "name": "Add Tech Stack Summary"
+    },
+    {
+      "parameters": {
+        "fromEmail": "osama.nawaid@gmail.com",
+        "toEmail": "syedmuhammadosama61220@gmail.com",
+        "subject": "New Developer Job Found!",
+        "html": "=<h3>{{$json.title}}</h3>\n<p><strong>Company:</strong> {{$json.company_name}}</p>\n<p><strong>Tags:</strong> {{$json.tags.join(\", \")}}</p>\n<p><strong>{{$json.stackSummary}}</strong></p>\n<p><a href=\"{{$json.url}}\" target=\"_blank\">View Job</a></p>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1340,
+        -40
+      ],
+      "id": "e05cbdd9-1fdf-44e9-a8b2-e6ef636f9b88",
+      "name": "Send Email Notification",
+      "webhookId": "98894f3b-933c-4c5d-ad05-7654799afd3e",
+      "credentials": {
+        "smtp": {
+          "id": "xyjcGTYpCgHFCLUK",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7d50a078-d5bd-4502-ad87-061460ec90f0",
+              "leftValue": "={{ $items.length }}\n",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        0
+      ],
+      "id": "3da15659-25db-4abc-95c1-b3bf93bb31e4",
+      "name": "Check RemoteOK Error"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Remote Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Remote Jobs": {
+      "main": [
+        [
+          {
+            "node": "Check RemoteOK Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Job Data": {
+      "main": [
+        [
+          {
+            "node": "Filter Developer Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Developer Jobs": {
+      "main": [
+        [
+          {
+            "node": "Add Tech Stack Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Tech Stack Summary": {
+      "main": [
+        [
+          {
+            "node": "Send Email Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check RemoteOK Error": {
+      "main": [
+        [
+          {
+            "node": "Clean Job Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0afb6024-f244-49c6-9aa8-297a80968fa6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "63f0c72722a1e11fe4431d75b11b0e57f00f0e90fd751b588b8ae17fefef018a"
+  },
+  "id": "DAXXL6PYzCBrYO43",
+  "tags": []
+}
