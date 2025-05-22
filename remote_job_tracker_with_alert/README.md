@@ -18,12 +18,12 @@ Custom Data Filtering
 
 Conditional Logic via IF Node
 
-Error Handling (in polish step)
+Error Handling
 
 Email Notifications
 
 📥 How to Import & Run
-Install n8n or use n8n.cloud
+Install n8n
 
 Import the .json file
 
